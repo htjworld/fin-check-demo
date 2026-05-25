@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>FinCheck AI — 데모</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --blue:#1259C3;--blue2:#3B7DE8;--blue-pale:#EBF3FF;--blue-mid:#BDD2FF;
+  --green:#00A86B;--green-pale:#E6FBF3;--red:#E53E3E;--red-pale:#FFF0F0;
+  --orange:#F5A623;--bg:#DDE9F7;--white:#FFFFFF;
+  --text:#18243A;--sub:#6B7A8D;--border:#E2E9F2;
+  --g1:#F7F9FC;--g2:#EDF1F7;--g3:#C5CFD9;--g4:#8E9BAD;
+}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--bg);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding:28px 16px 48px;
+  gap:0;
+}
+
+/* ── 페이지 헤더 (우리WON뱅킹 스타일) ── */
+.page-hd{
+  width:100%;max-width:400px;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:20px;
+}
+.page-hd-left .app-nm{font-size:22px;font-weight:900;color:var(--text);letter-spacing:-0.5px;}
+.page-hd-left .app-nm .ac{color:var(--blue);}
+.page-hd-left .app-desc{font-size:11px;color:var(--sub);margin-top:3px;font-weight:400;}
+.page-hd-right{display:flex;gap:10px;align-items:center;margin-top:4px;}
+.hd-tag{font-size:13px;font-weight:700;color:var(--blue);}
+.hd-tag.pu{color:#7B5FD9;}
+.hd-sep{width:1px;height:13px;background:var(--g3);}
+
+/* ── 폰 래퍼 ── */
+.phone-wrap{position:relative;width:360px;}
+
+/* 폰 측면 버튼 */
+.phone-wrap::before{content:'';position:absolute;right:-3px;top:128px;width:3.5px;height:56px;background:#C8D0DA;border-radius:0 2px 2px 0;z-index:1;}
+.phone-wrap::after{content:'';position:absolute;left:-3px;top:110px;width:3.5px;height:38px;background:#C8D0DA;border-radius:2px 0 0 2px;z-index:1;box-shadow:0 52px 0 #C8D0DA;}
+
+/* ── 폰 프레임 ── */
+.phone{
+  width:360px;height:740px;
+  background:var(--white);
+  border-radius:46px;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+  box-shadow:
+    0 0 0 1.5px rgba(0,0,0,0.09),
+    0 2px 4px rgba(0,0,0,0.05),
+    0 16px 50px rgba(0,0,0,0.18),
+    0 40px 80px rgba(0,0,0,0.12);
+}
+
+/* ── 상태바 ── */
+.sbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 22px 5px;
+  background:var(--white);flex-shrink:0;
+  position:relative;z-index:2;
+}
+.sbar-time{font-size:14px;font-weight:700;color:var(--text);}
+.sbar-icons{display:flex;align-items:center;gap:5px;}
+
+/* ── 내비바 ── */
+.nbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:2px 18px 12px;
+  background:var(--white);flex-shrink:0;
+  position:relative;z-index:2;
+}
+.nbar-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;transition:background .15s;}
+.nbar-btn:active{background:var(--g2);}
+.nbar-center{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.nbar-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;}
+.prog-dots{display:flex;gap:4px;align-items:center;}
+.pd{width:6px;height:6px;border-radius:3px;background:var(--g2);transition:all .35s cubic-bezier(.4,0,.2,1);}
+.pd.done{background:var(--green);}
+.pd.cur{width:18px;background:var(--blue);}
+
+/* ── 스크린 영역 ── */
+.screen{flex:1;overflow:hidden;position:relative;background:var(--white);}
+.screen-inner{
+  position:absolute;inset:0;
+  overflow-y:auto;
+  padding:18px 20px 24px;
+  scrollbar-width:none;-ms-overflow-style:none;
+  transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .28s ease;
+}
+.screen-inner::-webkit-scrollbar{display:none;}
+
+/* ── 성공 플래시 ── */
+.succ-flash{
+  position:absolute;inset:0;
+  background:rgba(0,168,107,.07);
+  display:flex;align-items:center;justify-content:center;
+  z-index:50;pointer-events:none;
+  opacity:0;transition:opacity .25s;
+}
+.succ-flash.on{opacity:1;}
+.succ-big{
+  width:76px;height:76px;
+  background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 32px rgba(0,168,107,.4);
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn{0%{transform:scale(0) rotate(-15deg);}100%{transform:scale(1) rotate(0);}}
+.succ-big svg{width:40px;height:40px;color:white;}
+
+/* ── 스텝 내비 ── */
+.step-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;margin-top:22px;
+}
+.step-nd{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:52px;}
+.step-dot{width:8px;height:8px;border-radius:4px;background:rgba(18,89,195,.15);transition:all .35s;}
+.step-nd.done .step-dot{background:var(--green);}
+.step-nd.cur .step-dot{width:20px;background:var(--blue);}
+.step-lbl{font-size:9.5px;color:var(--g4);font-weight:500;transition:color .3s;}
+.step-nd.cur .step-lbl{color:var(--blue);font-weight:700;}
+.step-nd.done .step-lbl{color:var(--green);}
+.step-ln{width:28px;height:1.5px;background:rgba(18,89,195,.12);margin-bottom:14px;transition:background .3s;}
+.step-ln.done{background:var(--green);}
+
+/* =========================================
+   SCREEN: START
+   ========================================= */
+.prod-banner{
+  display:flex;align-items:center;gap:8px;
+  background:var(--blue-pale);border-radius:10px;
+  padding:10px 13px;margin-bottom:14px;
+}
+.prod-badge{
+  font-size:9px;font-weight:800;color:var(--white);
+  background:var(--blue);padding:3px 7px;border-radius:5px;letter-spacing:.3px;
+}
+.prod-banner-text{font-size:12px;color:var(--blue);font-weight:600;line-height:1.4;}
+
+.prod-card{
+  border:1.5px solid var(--border);border-radius:16px;
+  padding:18px;margin-bottom:14px;
+  background:var(--white);
+}
+.prod-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.prod-name{font-size:17px;font-weight:700;color:var(--text);line-height:1.3;}
+.prod-type{font-size:11px;color:var(--sub);margin-top:3px;}
+.risk-pill{
+  display:flex;align-items:center;gap:4px;
+  background:#FFF3E0;border-radius:20px;padding:5px 10px;
+  white-space:nowrap;
+}
+.risk-pill span{font-size:10px;color:#E67300;font-weight:700;}
+
+.prod-svg{display:flex;justify-content:center;margin:14px 0 16px;}
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.info-cell{background:var(--g1);border-radius:10px;padding:8px 6px;}
+.info-cell .lbl{font-size:10px;color:var(--sub);margin-bottom:3px;}
+.info-cell .val{font-size:13px;font-weight:700;color:var(--text);}
+.info-cell .val.blue{color:var(--blue);}
+.info-cell .val.red{color:var(--red);}
+
+.warn-box{
+  display:flex;align-items:flex-start;gap:9px;
+  background:#FFF8EC;border:1px solid #F5D89A;border-radius:12px;
+  padding:11px 13px;margin-bottom:14px;
+}
+.warn-box .ic{font-size:16px;margin-top:1px;}
+.warn-box .tx{font-size:11px;color:#92600A;line-height:1.5;}
+
+.fc-box{
+  background:var(--blue-pale);border:1.5px solid var(--blue-mid);
+  border-radius:14px;padding:14px 16px;margin-bottom:18px;
+}
+.fc-box-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.fc-ai-badge{
+  font-size:8.5px;font-weight:900;color:white;
+  background:var(--blue);padding:2px 6px;border-radius:4px;letter-spacing:.5px;
+}
+.fc-box-title{font-size:13px;font-weight:700;color:var(--blue);}
+.fc-box-body{font-size:11.5px;color:var(--sub);line-height:1.65;}
+
+/* =========================================
+   SCREEN: QUIZ
+   ========================================= */
+.pbar{height:4px;background:var(--g2);border-radius:4px;margin-bottom:18px;overflow:hidden;}
+.pfill{height:100%;border-radius:4px;background:var(--blue);transition:width .55s cubic-bezier(.4,0,.2,1);}
+
+.quiz-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.quiz-topic-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--blue-pale);border-radius:20px;padding:4px 11px;
+}
+.quiz-topic-chip span{font-size:11px;color:var(--blue);font-weight:600;}
+.quiz-step-num{font-size:12px;color:var(--sub);font-weight:600;}
+
+.quiz-q{font-size:15px;font-weight:700;color:var(--text);line-height:1.55;margin-bottom:20px;white-space:pre-line;}
+
+.opts{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;}
+.opt{
+  display:flex;align-items:center;gap:11px;
+  padding:13px 15px;
+  border:1.5px solid var(--border);border-radius:13px;
+  background:var(--white);cursor:pointer;
+  transition:all .18s;user-select:none;
+}
+.opt:active{transform:scale(.982);}
+.opt-num{
+  width:24px;height:24px;border-radius:50%;
+  border:1.5px solid var(--g3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--sub);
+  flex-shrink:0;transition:all .18s;
+}
+.opt-tx{font-size:13px;color:var(--text);font-weight:500;line-height:1.4;}
+/* selected */
+.opt.sel{border-color:var(--blue);background:var(--blue-pale);}
+.opt.sel .opt-num{background:var(--blue);border-color:var(--blue);color:white;}
+.opt.sel .opt-tx{color:var(--blue);font-weight:600;}
+/* wrong */
+.opt.wrong{border-color:var(--red);background:var(--red-pale);}
+.opt.wrong .opt-num{background:var(--red);border-color:var(--red);color:white;}
+.opt.wrong .opt-tx{color:var(--red);}
+/* correct */
+.opt.ok{border-color:var(--green);background:var(--green-pale);}
+.opt.ok .opt-num{background:var(--green);border-color:var(--green);color:white;}
+.opt.ok .opt-tx{color:#00875A;font-weight:600;}
+
+/* =========================================
+   SCREEN: WRONG
+   ========================================= */
+.wrong-banner{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--red-pale);border:1.5px solid #FFCECE;
+  border-radius:13px;padding:12px 14px;margin-bottom:12px;
+}
+.wrong-ic{
+  width:28px;height:28px;background:var(--red);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:14px;font-weight:900;flex-shrink:0;
+}
+.wrong-tx{font-size:13px;font-weight:600;color:var(--red);line-height:1.4;}
+.wrong-sub{font-size:11px;color:#C53030;margin-top:3px;font-weight:400;opacity:.85;}
+
+.ok-reveal{
+  background:var(--green-pale);border:1.5px solid #A8EDCC;
+  border-radius:13px;padding:12px 14px;margin-bottom:12px;
+}
+.ok-lbl{font-size:10px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.ok-tx{font-size:13px;font-weight:600;color:var(--text);}
+
+.ai-card{background:var(--g1);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+.ai-card-top{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.ai-av{
+  width:28px;height:28px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:900;color:white;flex-shrink:0;
+}
+.ai-nm{font-size:11px;font-weight:700;color:var(--blue);}
+.ai-live{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.ai-card-body{font-size:12.5px;color:var(--text);line-height:1.7;}
+
+.row2{display:flex;gap:9px;margin-top:4px;}
+.row2 .btn{flex:1;}
+
+/* =========================================
+   SCREEN: CHAT
+   ========================================= */
+.chat-wrap{display:flex;flex-direction:column;gap:12px;padding-bottom:8px;}
+.chat-date{text-align:center;font-size:10px;color:var(--g3);padding:4px 0;}
+
+.crow{display:flex;gap:8px;align-items:flex-end;}
+.crow.u{flex-direction:row-reverse;}
+.cav{
+  width:30px;height:30px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;font-weight:900;color:white;flex-shrink:0;align-self:flex-start;
+}
+.cbub{
+  max-width:72%;padding:10px 13px;
+  font-size:12.5px;line-height:1.65;color:var(--text);
+  background:var(--g1);border-radius:4px 16px 16px 16px;
+}
+.crow.u .cbub{
+  background:var(--blue);color:white;
+  border-radius:16px 4px 16px 16px;
+}
+.typing{display:flex;gap:4px;align-items:center;padding:4px 2px;}
+.tdot{
+  width:7px;height:7px;border-radius:50%;background:var(--g3);
+  animation:tpulse 1.1s infinite;
+}
+.tdot:nth-child(2){animation-delay:.18s;}
+.tdot:nth-child(3){animation-delay:.36s;}
+@keyframes tpulse{
+  0%,60%,100%{transform:translateY(0);opacity:.5;}
+  30%{transform:translateY(-5px);opacity:1;}
+}
+
+.chat-foot{
+  position:sticky;bottom:0;
+  background:var(--white);
+  padding:10px 0 0;
+  border-top:1px solid var(--border);
+  margin-top:10px;
+}
+.chat-foot-hint{
+  font-size:10px;color:var(--sub);text-align:center;margin-bottom:7px;
+}
+.chat-inp-row{display:flex;gap:8px;align-items:center;}
+.chat-inp{
+  flex:1;padding:11px 16px;
+  border:1.5px solid var(--border);border-radius:24px;
+  font-family:inherit;font-size:13px;color:var(--text);
+  outline:none;background:var(--g1);
+  transition:border-color .2s, background .2s;
+}
+.chat-inp:focus{border-color:var(--blue);background:white;}
+.chat-send{
+  width:38px;height:38px;
+  background:var(--blue);border:none;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background .18s, transform .15s;
+}
+.chat-send:active{transform:scale(.9);}
+
+.retry-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--blue-pale);border:1.5px solid var(--blue-mid);
+  border-radius:20px;padding:8px 15px;
+  font-size:12px;color:var(--blue);font-weight:600;
+  cursor:pointer;margin-top:6px;
+  transition:background .18s, transform .15s;
+}
+.retry-chip:active{transform:scale(.97);}
+
+/* =========================================
+   SCREEN: COMPLETE
+   ========================================= */
+.comp-hero{
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 0 12px;
+}
+.comp-ring{
+  width:86px;height:86px;
+  background:linear-gradient(135deg,#00C47D,#009A60);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 28px rgba(0,168,107,.35);
+  margin-bottom:14px;
+  animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.comp-ring svg{width:46px;height:46px;color:white;}
+.comp-t{font-size:19px;font-weight:700;color:var(--text);margin-bottom:5px;}
+.comp-s{font-size:12.5px;color:var(--sub);text-align:center;line-height:1.55;}
+
+.cklist{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
+.ck-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;background:var(--green-pale);
+  border-radius:11px;border:1px solid #B0E8CC;
+}
+.ck-ico{
+  width:22px;height:22px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ck-ico svg{width:12px;height:12px;color:white;}
+.ck-tx{font-size:12.5px;font-weight:600;color:var(--text);}
+
+.audit-card{
+  background:var(--g1);border:1.5px solid var(--border);border-radius:13px;
+  padding:14px 16px;margin-bottom:16px;
+}
+.audit-hdr{
+  display:flex;align-items:center;gap:7px;
+  margin-bottom:10px;padding-bottom:9px;
+  border-bottom:1px solid var(--border);
+}
+.audit-hdr-ic{
+  width:22px;height:22px;background:var(--blue);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.audit-hdr-ic svg{width:12px;height:12px;color:white;}
+.audit-hdr-title{font-size:11.5px;font-weight:700;color:var(--text);}
+.audit-hdr-badge{
+  margin-left:auto;font-size:9px;font-weight:700;
+  color:var(--green);background:var(--green-pale);
+  padding:2px 7px;border-radius:10px;border:1px solid #A8EDCC;
+}
+.audit-rows{display:flex;flex-direction:column;gap:6px;}
+.audit-row{display:flex;justify-content:space-between;align-items:center;}
+.audit-k{font-size:11px;color:var(--sub);font-weight:500;}
+.audit-v{font-size:11px;color:var(--text);font-weight:600;text-align:right;}
+.audit-v.green{color:var(--green);}
+.audit-hash{
+  margin-top:9px;padding-top:8px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.audit-hash-lbl{font-size:9.5px;color:var(--sub);}
+.audit-hash-val{font-size:9.5px;color:var(--g4);font-family:'Courier New',monospace;}
+
+/* =========================================
+   COMMON BUTTONS
+   ========================================= */
+.btn{
+  width:100%;padding:14px;border:none;border-radius:14px;
+  font-family:inherit;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .18s;letter-spacing:-.2px;
+}
+.btn:active{transform:scale(.979);}
+.btn-bl{background:var(--blue);color:white;box-shadow:0 4px 18px rgba(18,89,195,.28);}
+.btn-bl:hover{background:#0D4AA8;}
+.btn-bl:disabled{background:var(--g2);color:var(--g3);box-shadow:none;cursor:not-allowed;transform:none;}
+.btn-ol{background:white;color:var(--blue);border:1.5px solid var(--blue);}
+.btn-gn{background:var(--green);color:white;box-shadow:0 4px 18px rgba(0,168,107,.3);}
+.btn-sm{padding:11px 14px;font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- 페이지 헤더 -->
+<div class="page-hd">
+  <div class="page-hd-left">
+    <div class="app-nm">FinCheck <span class="ac">AI</span></div>
+    <div class="app-desc">AI가 묻고, 고객이 답하고, 이해가 증명된다</div>
+  </div>
+  <div class="page-hd-right">
+    <span class="hd-tag">스마트폰</span>
+    <div class="hd-sep"></div>
+    <span class="hd-tag pu">투자상품 가입</span>
+  </div>
+</div>
+
+<!-- 폰 -->
+<div class="phone-wrap">
+<div class="phone">
+
+  <!-- 상태바 -->
+  <div class="sbar">
+    <span class="sbar-time">9:30</span>
+    <div class="sbar-icons">
+      <svg width="15" height="11" viewBox="0 0 20 14" fill="var(--text)">
+        <path d="M10 2C6.5 2 3.3 3.4 1 5.7L2.8 7.5C4.6 5.7 7.2 4.6 10 4.6s5.4 1.1 7.2 2.9L19 5.7C16.7 3.4 13.5 2 10 2z"/>
+        <path d="M10 7c-2.2 0-4.2.9-5.6 2.4L6.2 11c.9-1 2.3-1.7 3.8-1.7s2.9.6 3.8 1.7l1.8-1.6C14.2 7.9 12.2 7 10 7z"/>
+        <circle cx="10" cy="14" r="2"/>
+      </svg>
+      <svg width="13" height="11" viewBox="0 0 18 14" fill="var(--text)">
+        <rect x="0" y="9" width="3" height="5" rx="1"/>
+        <rect x="5" y="6" width="3" height="8" rx="1"/>
+        <rect x="10" y="3" width="3" height="11" rx="1"/>
+        <rect x="15" y="0" width="3" height="14" rx="1"/>
+      </svg>
+      <svg width="22" height="12" viewBox="0 0 28 14" fill="none">
+        <rect x=".75" y=".75" width="23.5" height="12.5" rx="2.5" stroke="var(--text)" stroke-width="1.5"/>
+        <rect x="2" y="2" width="18" height="10" rx="1.5" fill="var(--text)"/>
+        <path d="M25.5 5v4a2 2 0 000-4z" fill="var(--text)"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 내비바 -->
+  <div class="nbar">
+    <div class="nbar-btn" id="backBtn" onclick="goBack()">
+      <svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><path d="M9 1L1 8.5L9 16"/></svg>
+    </div>
+    <div class="nbar-center">
+      <span class="nbar-title" id="navT">상품 안내</span>
+      <div class="prog-dots" id="pgDots" style="display:none;">
+        <div class="pd" id="pd0"></div>
+        <div class="pd" id="pd1"></div>
+        <div class="pd" id="pd2"></div>
+      </div>
+    </div>
+    <div class="nbar-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2"><circle cx="12" cy="5" r="1.5" fill="var(--sub)"/><circle cx="12" cy="12" r="1.5" fill="var(--sub)"/><circle cx="12" cy="19" r="1.5" fill="var(--sub)"/></svg>
+    </div>
+  </div>
+
+  <!-- 스크린 -->
+  <div class="screen">
+    <div class="screen-inner" id="si"></div>
+    <div class="succ-flash" id="sFlash">
+      <div class="succ-big">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<!-- 스텝 내비 -->
+<div class="step-row" id="stepRow"></div>
+
+<script>
+/* ── 데이터 ──────────────────────────────────── */
+const Qs = [
+  {
+    topic:'환매 수수료',
+    q:'이 상품에 1,000만원 투자 후\n6개월 만에 환매하려면?',
+    opts:[
+      {id:'a', t:'원금 전액을 즉시 수령할 수 있다'},
+      {id:'b', t:'손실 없이 원금 그대로 받는다'},
+      {id:'c', t:'조기환매 수수료 약 75,000원이\n발생한다', ok:true},
+      {id:'d', t:'환매 자체가 불가능하다'}
+    ],
+    explain:'가입 후 1년 이내 환매 시 잔존기간에 따라 조기환매 수수료(최대 0.75%)가 부과됩니다. 1,000만원 기준 6개월 시 약 37,500~75,000원이 발생해요.',
+    chat:[
+      {r:'ai', t:'환매 수수료는 1년 이내에 해지할 때 부과돼요. 가입 후 6개월이라면 잔존 기간이 많아 수수료가 높은 구간이에요.'},
+      {r:'user', t:'1년이 지나면 수수료가 없어지나요?'},
+      {r:'ai', t:'맞아요! ✅ 가입 후 1년이 지나면 조기환매 수수료 없이 자유롭게 환매하실 수 있습니다. 그래서 이 상품은 최소 1년 이상 투자를 권장해요.'},
+    ]
+  },
+  {
+    topic:'원금 보장 여부',
+    q:'이 펀드 상품의 원금 보장에 대한\n올바른 설명은?',
+    opts:[
+      {id:'a', t:'우리은행이 원금을 전액 보장한다'},
+      {id:'b', t:'정부 예금보험공사가 보증한다'},
+      {id:'c', t:'시장 상황에 따라 원금 손실이\n발생할 수 있다', ok:true},
+      {id:'d', t:'어떤 경우에도 원금은 유지된다'}
+    ],
+    explain:'펀드는 예금과 다릅니다. 시장 변동에 따라 원금 손실이 발생할 수 있으며, 예금자보호법이 적용되지 않습니다.',
+    chat:[
+      {r:'ai', t:'펀드는 은행 예금이 아닙니다. 주식·채권에 투자하므로 시장 상황에 따라 원금보다 적게 돌려받을 수 있어요.'},
+      {r:'user', t:'예금이랑 어떻게 다른가요?'},
+      {r:'ai', t:'예금은 은행이 이자를 포함해 원금을 돌려줘요. 하지만 펀드는 투자 성과에 따라 수익률이 달라지고, 원금 손실 가능성이 있어요. 예금자보호도 적용되지 않습니다.'},
+    ]
+  },
+  {
+    topic:'투자위험 등급',
+    q:'이 상품의 투자위험등급과\n권장 투자자 유형은?',
+    opts:[
+      {id:'a', t:'1등급 (매우낮음) — 안정형'},
+      {id:'b', t:'2등급 (낮음) — 안정추구형'},
+      {id:'c', t:'3등급 (보통) — 위험중립형 이상', ok:true},
+      {id:'d', t:'모든 투자 성향에 적합하다'}
+    ],
+    explain:'이 상품은 투자위험 3등급(보통 위험)으로, 위험중립형 이상의 투자자에게만 판매 가능합니다.',
+    chat:[
+      {r:'ai', t:'투자위험등급은 1(최저)~5(최고)로 나뉘어요. 이 상품은 3등급으로 중간 수준의 위험을 감수할 수 있는 분께 적합해요.'},
+      {r:'user', t:'제가 안정형이면 이 상품을 가입할 수 없나요?'},
+      {r:'ai', t:'투자성향이 안정형이라면 이 상품은 적합하지 않을 수 있어요. 더 안전한 1~2등급 상품을 권장드려요. 담당 직원에게 문의해 보세요 😊'},
+    ]
+  }
+];
+
+const S = {START:'start', QUIZ:'quiz', WRONG:'wrong', CHAT:'chat', COMP:'comp'};
+
+let st = {
+  scr:S.START,
+  qi:0,       // question index 0-based
+  sel:null,   // selected option id
+  doneQ:0,    // how many questions passed
+  chatMsgs:[], chatIdx:0,
+  userRespCount:0,
+};
+
+/* ── 렌더 진입 ──────────────────────────────── */
+function render(){
+  updateNav(); updateSteps();
+  const si=document.getElementById('si');
+  si.scrollTop=0;
+  switch(st.scr){
+    case S.START: renderStart(); break;
+    case S.QUIZ:  renderQuiz();  break;
+    case S.WRONG: renderWrong(); break;
+    case S.CHAT:  renderChat();  break;
+    case S.COMP:  renderComp();  break;
+  }
+}
+
+function transit(next, dir=1){
+  const si=document.getElementById('si');
+  si.style.transition='transform .28s cubic-bezier(.4,0,.2,1), opacity .22s';
+  si.style.transform=`translateX(${dir*-45}px)`;
+  si.style.opacity='0';
+  setTimeout(()=>{
+    st.scr=next; render();
+    si.style.transition='none';
+    si.style.transform=`translateX(${dir*45}px)`;
+    si.style.opacity='0';
+    requestAnimationFrame(()=>{
+      si.style.transition='transform .32s cubic-bezier(.2,.8,.3,1), opacity .28s';
+      si.style.transform='translateX(0)';
+      si.style.opacity='1';
+    });
+  },230);
+}
+
+/* ── 내비 업데이트 ──────────────────────────── */
+function updateNav(){
+  const titles={[S.START]:'상품 안내',[S.QUIZ]:'FinCheck AI',[S.WRONG]:'FinCheck AI',[S.CHAT]:'AI 설명',[S.COMP]:'이해도 확인 완료'};
+  document.getElementById('navT').textContent=titles[st.scr];
+  document.getElementById('backBtn').style.visibility=(st.scr===S.START)?'hidden':'visible';
+  const showDots=[S.QUIZ,S.WRONG,S.CHAT].includes(st.scr);
+  document.getElementById('pgDots').style.display=showDots?'flex':'none';
+  if(showDots){
+    [0,1,2].forEach(i=>{
+      const d=document.getElementById('pd'+i);
+      d.className='pd';
+      if(i<st.doneQ){d.classList.add('done');d.style.width='6px';d.style.borderRadius='3px';d.style.background='var(--green)';}
+      else if(i===st.qi){d.classList.add('cur');d.style.width='18px';d.style.borderRadius='4px';d.style.background='var(--blue)';}
+      else{d.style.width='6px';d.style.borderRadius='3px';d.style.background='var(--g2)';}
+    });
+  }
+}
+
+function updateSteps(){
+  const labels=['시작','Q 1','Q 2','Q 3','완료'];
+  let cur;
+  if(st.scr===S.START) cur=0;
+  else if(st.scr===S.COMP) cur=4;
+  else cur=st.qi+1;
+  let h='';
+  labels.forEach((lb,i)=>{
+    const done=i<cur, active=i===cur;
+    h+=`<div class="step-nd ${done?'done':''} ${active?'cur':''}">
+      <div class="step-dot"></div>
+      <span class="step-lbl">${lb}</span>
+    </div>`;
+    if(i<labels.length-1) h+=`<div class="step-ln ${done?'done':''}"></div>`;
+  });
+  document.getElementById('stepRow').innerHTML=h;
+}
+
+/* ── 성공 플래시 ─────────────────────────────── */
+function flashSuccess(cb){
+  const f=document.getElementById('sFlash');
+  f.classList.add('on');
+  setTimeout(()=>{ f.classList.remove('on'); setTimeout(cb,180); },720);
+}
+
+/* =========================================
+   SCREEN: START
+   ========================================= */
+function renderStart(){
+  document.getElementById('si').innerHTML=`
+<div class="prod-banner">
+  <span class="prod-badge">FinCheck AI</span>
+  <span class="prod-banner-text">가입 전 AI 이해도 확인이 필요합니다</span>
+</div>
+
+<div class="prod-card">
+  <div class="prod-card-top">
+    <div>
+      <div class="prod-name">WON 글로벌<br>혼합형 펀드 1호</div>
+      <div class="prod-type">해외주식 + 채권 혼합형</div>
+    </div>
+    <div class="risk-pill"><span>⚠ 3등급</span></div>
+  </div>
+
+  <div class="prod-svg">
+    <svg width="140" height="100" viewBox="0 0 140 100" fill="none">
+      <!-- 동전 그림자 -->
+      <ellipse cx="70" cy="92" rx="48" ry="8" fill="#DDE9F7" opacity=".7"/>
+      <!-- 동전 3개 (아래→위) -->
+      <ellipse cx="70" cy="84" rx="44" ry="11" fill="#B8952A"/>
+      <rect x="26" y="64" width="88" height="20" fill="#C9A432" rx="2"/>
+      <ellipse cx="70" cy="64" rx="44" ry="11" fill="#DDB93C"/>
+
+      <ellipse cx="70" cy="53" rx="41" ry="10" fill="#B8952A"/>
+      <rect x="29" y="35" width="82" height="18" fill="#C9A432" rx="2"/>
+      <ellipse cx="70" cy="35" rx="41" ry="10" fill="#F0CC4A"/>
+
+      <ellipse cx="70" cy="25" rx="38" ry="9" fill="#B8952A"/>
+      <rect x="32" y="10" width="76" height="15" fill="#C9A432" rx="2"/>
+      <ellipse cx="70" cy="10" rx="38" ry="9" fill="#FADD5C"/>
+
+      <!-- 화살표 -->
+      <polyline points="110,42 120,22 130,42" stroke="#E53E3E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <line x1="120" y1="22" x2="120" y2="60" stroke="#E53E3E" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-cell"><div class="lbl">운용사</div><div class="val">우리자산운용</div></div>
+    <div class="info-cell"><div class="lbl">권장 투자기간</div><div class="val blue">1년 이상</div></div>
+    <div class="info-cell"><div class="lbl">최소 가입금액</div><div class="val">100만원</div></div>
+    <div class="info-cell"><div class="lbl">총 보수</div><div class="val">연 1.20%</div></div>
+  </div>
+</div>
+
+<div class="warn-box">
+  <span class="ic">⚠️</span>
+  <span class="tx"><strong>원금 비보장 상품</strong> · 투자위험 3등급<br>시장 상황에 따라 손실이 발생할 수 있습니다</span>
+</div>
+
+<div class="fc-box">
+  <div class="fc-box-top">
+    <span class="fc-ai-badge">AI</span>
+    <span class="fc-box-title">이해도 확인이 필요합니다</span>
+  </div>
+  <div class="fc-box-body">가입 전 핵심 내용 3가지를 AI와 함께 확인합니다. 모르는 부분은 AI에게 언제든지 물어보실 수 있어요.</div>
+</div>
+
+<button class="btn btn-bl" onclick="startQuiz()">FinCheck AI 시작하기 →</button>
+`;
+}
+
+/* =========================================
+   SCREEN: QUIZ
+   ========================================= */
+function renderQuiz(){
+  const q=Qs[st.qi];
+  const pct=(st.qi/3*100).toFixed(0);
+  const nums=['①','②','③','④'];
+  document.getElementById('si').innerHTML=`
+<div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+<div class="quiz-meta">
+  <div class="quiz-topic-chip"><span>📋 ${q.topic}</span></div>
+  <span class="quiz-step-num">${st.qi+1} / 3</span>
+</div>
+<div class="quiz-q">${q.q}</div>
+<div class="opts" id="optList">
+${q.opts.map((o,i)=>`
+<div class="opt" id="op_${o.id}" onclick="selOpt('${o.id}')">
+  <div class="opt-num">${nums[i]}</div>
+  <div class="opt-tx">${o.t.replace(/\n/g,'<br>')}</div>
+</div>`).join('')}
+</div>
+<button class="btn btn-bl" id="subBtn" onclick="submit()" disabled>답변 제출하기</button>
+`;
+  st.sel=null;
+}
+
+function selOpt(id){
+  st.sel=id;
+  document.querySelectorAll('.opt').forEach(el=>el.classList.remove('sel'));
+  const el=document.getElementById('op_'+id);
+  if(el) el.classList.add('sel');
+  const btn=document.getElementById('subBtn');
+  if(btn){ btn.disabled=false; }
+}
+
+function submit(){
+  const q=Qs[st.qi];
+  const correct=q.opts.find(o=>o.ok);
+  const isOk=st.sel===correct.id;
+  document.getElementById('subBtn').disabled=true;
+
+  const selEl=document.getElementById('op_'+st.sel);
+  const okEl=document.getElementById('op_'+correct.id);
+
+  if(isOk){
+    if(selEl) selEl.classList.add('ok');
+    flashSuccess(()=>{
+      st.doneQ++;
+      if(st.qi<2){ st.qi++; transit(S.QUIZ); }
+      else transit(S.COMP);
+    });
+  } else {
+    if(selEl) selEl.classList.add('wrong');
+    if(okEl) okEl.classList.add('ok');
+    setTimeout(()=>transit(S.WRONG), 900);
+  }
+}
+
+/* =========================================
+   SCREEN: WRONG
+   ========================================= */
+function renderWrong(){
+  const q=Qs[st.qi];
+  const wrongOpt=q.opts.find(o=>o.id===st.sel);
+  const okOpt=q.opts.find(o=>o.ok);
+  document.getElementById('si').innerHTML=`
+<div class="pbar"><div class="pfill" style="width:${(st.qi/3*100).toFixed(0)}%"></div></div>
+<div class="quiz-meta">
+  <div class="quiz-topic-chip"><span>📋 ${q.topic}</span></div>
+  <span class="quiz-step-num">${st.qi+1} / 3</span>
+</div>
+<div class="wrong-banner">
+  <div class="wrong-ic">✕</div>
+  <div>
+    <div class="wrong-tx">오답입니다</div>
+    <div class="wrong-sub">선택: ${wrongOpt?wrongOpt.t.replace(/\n/g,' '):''}</div>
+  </div>
+</div>
+<div class="ok-reveal">
+  <div class="ok-lbl">✓ 정답</div>
+  <div class="ok-tx">${okOpt?okOpt.t.replace(/\n/g,' '):''}</div>
+</div>
+<div class="ai-card">
+  <div class="ai-card-top">
+    <div class="ai-av">AI</div>
+    <span class="ai-nm">FinCheck AI</span>
+    <div class="ai-live"></div>
+  </div>
+  <div class="ai-card-body">${q.explain}</div>
+</div>
+<div class="row2">
+  <button class="btn btn-ol btn-sm" onclick="openChat()">💬 더 물어보기</button>
+  <button class="btn btn-bl btn-sm" onclick="retryQ()">다시 풀기</button>
+</div>
+`;
+}
+
+/* =========================================
+   SCREEN: CHAT
+   ========================================= */
+function renderChat(){
+  const q=Qs[st.qi];
+  const showRetry=st.chatIdx>=q.chat.length && st.chatMsgs.length>0;
+  const msgsHTML=st.chatMsgs.map(m=>{
+    if(m.typing) return `<div class="crow"><div class="cav">AI</div><div class="cbub"><div class="typing"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></div></div></div>`;
+    if(m.r==='ai') return `<div class="crow"><div class="cav">AI</div><div class="cbub">${m.t}</div></div>`;
+    return `<div class="crow u"><div class="cbub">${m.t}</div></div>`;
+  }).join('');
+
+  document.getElementById('si').innerHTML=`
+<div class="chat-date">오늘 · FinCheck AI</div>
+<div class="chat-wrap" id="chatWrap">
+  ${msgsHTML}
+  ${showRetry?`<div style="text-align:center;padding:10px 0;"><div class="retry-chip" onclick="retryQ()">✓ 이해했어요 · 다시 풀기</div></div>`:''}
+</div>
+<div class="chat-foot">
+  <div class="chat-foot-hint">이 상품에 대해 무엇이든 물어보세요</div>
+  <div class="chat-inp-row">
+    <input class="chat-inp" id="chatInp" placeholder="궁금한 점을 입력하세요..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="chat-send" onclick="sendMsg()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+`;
+  scrollChat();
+  setTimeout(()=>{ const inp=document.getElementById('chatInp'); if(inp) inp.focus(); },200);
+}
+
+function scrollChat(){
+  setTimeout(()=>{ const cw=document.getElementById('chatWrap'); if(cw) cw.scrollIntoView({block:'end',behavior:'smooth'}); },80);
+}
+
+function playChat(){
+  const q=Qs[st.qi];
+  if(st.chatIdx>=q.chat.length){ renderChat(); return; }
+  const msg=q.chat[st.chatIdx];
+  if(msg.r==='ai'){
+    st.chatMsgs.push({typing:true}); renderChat();
+    setTimeout(()=>{
+      st.chatMsgs.pop();
+      st.chatMsgs.push(msg);
+      st.chatIdx++;
+      renderChat();
+      if(st.chatIdx<q.chat.length) setTimeout(playChat, 700);
+    },1300);
+  } else {
+    st.chatMsgs.push(msg); st.chatIdx++;
+    renderChat();
+    setTimeout(playChat, 500);
+  }
+}
+
+function sendMsg(){
+  const inp=document.getElementById('chatInp');
+  const txt=inp?inp.value.trim():'';
+  if(!txt) return;
+  const q=Qs[st.qi];
+  st.chatMsgs.push({r:'user',t:txt});
+  if(inp) inp.value='';
+  st.userRespCount++;
+  renderChat();
+  const fallbacks=[
+    q.explain,
+    '더 궁금한 점이 있으신가요? 충분히 이해하셨다면 "이해했어요 · 다시 풀기"를 눌러보세요 😊',
+    '이 내용이 충분히 이해되셨다면, 다시 문제에 도전해보세요!'
+  ];
+  const resp=fallbacks[Math.min(st.userRespCount-1, fallbacks.length-1)];
+  setTimeout(()=>{
+    st.chatMsgs.push({typing:true}); renderChat();
+    setTimeout(()=>{
+      st.chatMsgs.pop();
+      st.chatMsgs.push({r:'ai',t:resp});
+      // show retry if enough messages
+      if(st.chatMsgs.filter(m=>m.r==='ai'&&!m.typing).length>=2) st.chatIdx=q.chat.length;
+      renderChat();
+    },1100);
+  },300);
+}
+
+/* =========================================
+   SCREEN: COMPLETE
+   ========================================= */
+function renderComp(){
+  document.getElementById('si').innerHTML=`
+<div class="comp-hero">
+  <div class="comp-ring">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <div class="comp-t">3 / 3 핵심 확인 완료</div>
+  <div class="comp-s">모든 내용을 이해하셨습니다.<br>이제 가입을 진행하실 수 있습니다.</div>
+</div>
+
+<div class="cklist">
+  <div class="ck-item"><div class="ck-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ck-tx">환매 수수료 및 환매 조건</span></div>
+  <div class="ck-item"><div class="ck-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ck-tx">원금 비보장 및 손실 위험</span></div>
+  <div class="ck-item"><div class="ck-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ck-tx">투자위험등급 및 적합 성향</span></div>
+</div>
+
+<div class="audit-card">
+  <div class="audit-hdr">
+    <div class="audit-hdr-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <span class="audit-hdr-title">이해도 확인 기록</span>
+    <span class="audit-hdr-badge">✓ SHA-256 인증</span>
+  </div>
+  <div class="audit-rows">
+    <div class="audit-row"><span class="audit-k">세션 ID</span><span class="audit-v">FC-20241201-0047</span></div>
+    <div class="audit-row"><span class="audit-k">상품명</span><span class="audit-v">WON 글로벌혼합형 1호</span></div>
+    <div class="audit-row"><span class="audit-k">고객 ID</span><span class="audit-v">****1234</span></div>
+    <div class="audit-row"><span class="audit-k">최종 점수</span><span class="audit-v green">3 / 3 통과</span></div>
+    <div class="audit-row"><span class="audit-k">확인 일시</span><span class="audit-v">2024-12-01 09:30</span></div>
+  </div>
+  <div class="audit-hash">
+    <span class="audit-hash-lbl">검증 해시</span>
+    <span class="audit-hash-val">a3f9b2...c12e</span>
+  </div>
+</div>
+
+<button class="btn btn-gn" onclick="alert('데모 완료! 실제 가입 화면으로 이동합니다.')">가입 진행하기 →</button>
+`;
+}
+
+/* =========================================
+   ACTIONS
+   ========================================= */
+function startQuiz(){ st.qi=0; st.doneQ=0; transit(S.QUIZ); }
+
+function retryQ(){ st.sel=null; st.chatMsgs=[]; st.chatIdx=0; st.userRespCount=0; transit(S.QUIZ,-1); }
+
+function openChat(){
+  st.chatMsgs=[]; st.chatIdx=0; st.userRespCount=0;
+  transit(S.CHAT);
+  setTimeout(playChat, 400);
+}
+
+function goBack(){
+  if(st.scr===S.START) return;
+  if(st.scr===S.QUIZ){
+    if(st.qi>0){ st.qi--; st.doneQ=Math.max(0,st.doneQ-1); transit(S.QUIZ,-1); }
+    else transit(S.START,-1);
+  } else if(st.scr===S.WRONG){ st.sel=null; transit(S.QUIZ,-1); }
+  else if(st.scr===S.CHAT){ st.chatMsgs=[]; st.chatIdx=0; transit(S.WRONG,-1); }
+  else if(st.scr===S.COMP){ transit(S.QUIZ,-1); }
+}
+
+/* ── 초기화 ──── */
+render();
+</script>
+</body>
+</html>
