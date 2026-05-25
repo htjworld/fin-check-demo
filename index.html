@@ -430,6 +430,20 @@ body{
 .btn-gn{background:var(--green);color:white;box-shadow:0 4px 18px rgba(0,168,107,.3);}
 .btn-sm{padding:11px 14px;font-size:13px;}
 
+/* ── 완료화면 전용: 스크롤 없이 딱 맞게 ── */
+.comp-screen{padding:10px 20px 14px;}
+.comp-screen .comp-hero{padding:6px 0 6px;}
+.comp-screen .comp-ring{width:72px;height:72px;margin-bottom:9px;box-shadow:0 6px 22px rgba(0,168,107,.32);}
+.comp-screen .comp-ring svg{width:38px;height:38px;}
+.comp-screen .comp-t{font-size:17px;margin-bottom:4px;}
+.comp-screen .comp-s{font-size:12px;}
+.comp-screen .cklist{margin:9px 0 9px;gap:6px;}
+.comp-screen .ck-item{padding:8px 12px;}
+.comp-screen .audit-card{margin-bottom:11px;padding:11px 14px;}
+.comp-screen .audit-hdr{margin-bottom:7px;padding-bottom:7px;}
+.comp-screen .audit-rows{gap:4px;}
+.comp-screen .audit-hash{margin-top:7px;padding-top:6px;}
+
 /* ── 모바일: 폰이 화면을 꽉 채우도록 ── */
 @media (max-width:480px){
   html,body{
@@ -603,6 +617,7 @@ function render(){
   updateNav(); updateSteps();
   const si=document.getElementById('si');
   si.scrollTop=0;
+  si.className='screen-inner';
   switch(st.scr){
     case S.START: renderStart(); break;
     case S.QUIZ:  renderQuiz();  break;
@@ -924,7 +939,9 @@ function sendMsg(){
    SCREEN: COMPLETE
    ========================================= */
 function renderComp(){
-  document.getElementById('si').innerHTML=`
+  const si=document.getElementById('si');
+  si.className='screen-inner comp-screen';
+  si.innerHTML=`
 <div class="comp-hero">
   <div class="comp-ring">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
